@@ -223,10 +223,19 @@ namespace Titan {
 		//bind the sun buffer
 		//sunBuffer.Bind(0);
 
-		//clear the shadow buffer
+		//update the has drawn 3D geo flag
+		m_hasDrawn3DGeo = false;
+
+		//clear all of the buffers
 		shadowBuffer->Clear();
-		/*gBuffer->Clear();
-		illBuffer->Clear();*/
+		gBuffer->Clear();
+		illBuffer->Clear();
+		finalGBuffer->Clear();
+		starting2DBuffer->Clear();
+		final2DBuffer->Clear();
+		startingParticleBuffer->Clear();
+		finalParticleBuffer->Clear();
+		sceneBuffer->Clear();
 
 		//only run the updates if the scene is not paused
 		if (!m_Paused) {
@@ -309,10 +318,19 @@ namespace Titan {
 	}
 
 	//function that executes after the main render
-	void TTN_Scene::PostRender()
-	{
+	void TTN_Scene::PostRender() {
 		//set up the view matrix
 		glm::mat4 viewMat = glm::inverse(Get<TTN_Transform>(m_Cam).GetGlobal());
+
+		glm::ivec2 size = TTN_Backend::GetWindowSize();
+		//copy the depth from the gbuffer over to the starting particle buffer
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer->GetHandle());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, startingParticleBuffer->GetFrameBufferHandle(0));
+		glBlitFramebuffer(0, 0, size.x, size.y, 0, 0, size.x, size.y, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, GL_NONE);
+
+		//bind the starting particle buffer
+		startingParticleBuffer->BindBuffer(0);
 
 		//create a view of all the entities with a particle system and a transform
 		auto psTransView = m_Registry->view<TTN_ParticeSystemComponent, TTN_Transform>();
@@ -323,61 +341,171 @@ namespace Titan {
 		}
 
 		//unbind the empty effect and run through all the post effect
-		m_emptyEffect->UnbindBuffer();
-	/*	gBuffer->Unbind();
+		//m_emptyEffect->UnbindBuffer();
+		gBuffer->Unbind();
 		illBuffer->BindBuffer(0);
 
-		illBuffer->UnbindBuffer();
+		//now figure out what post effects should be applied
 
 		shadowBuffer->BindDepthAsTexture(30);
 		illBuffer->ApplyEffect(gBuffer);
-		shadowBuffer->UnbindTexture(30);*/
+		shadowBuffer->UnbindTexture(30);
 
-		//if there are post processing effects that can be applied
-		if (m_PostProcessingEffects.size() > 0) {
 			//track the index of the last effect that was applied
 			int index = -1;
-			//and iterate through all the post processing effects
-			for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
-				//if the effect should be applied
-				if (m_PostProcessingEffects[i]->GetShouldApply()) {
-					//apply the effect
-					if (index == -1)
-						m_PostProcessingEffects[i]->ApplyEffect(m_emptyEffect);
-					else
-						m_PostProcessingEffects[i]->ApplyEffect(m_PostProcessingEffects[index]);
 
-					//and save the index as this was most recent effect applied
-					index = i;
+			//apply all of the other post processing effects to the illiumination buffer
+			if (m_PostProcessingEffects.size() > 0) {
+
+				//and iterate through all the post processing effects
+				for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
+					//if the effect should be applied
+					if (m_PostProcessingEffects[i]->GetShouldApply()) {
+						//apply the effect
+						if (index == -1)
+							m_PostProcessingEffects[i]->ApplyEffect(illBuffer);
+						else
+							m_PostProcessingEffects[i]->ApplyEffect(m_PostProcessingEffects[index]);
+
+						//and save the index as this was most recent effect applied
+						index = i;
+					}
 				}
 			}
-			//at the end, draw to the screen
+			//at the end, draw into the final 3D buffer
 			if (index == -1) {
-				//if none should be applied, just draw the empty effect
-				m_emptyEffect->DrawToScreen();
-				//and save it as the last effect played
-				TTN_Backend::SetLastEffect(m_emptyEffect);
+				//if none should be applied, just apply the illumination effect
+				finalGBuffer->ApplyEffect(illBuffer);
 			}
 			else {
 				//if they should be applied, draw from the last effect
-				m_PostProcessingEffects[index]->DrawToScreen();
-				//and save it
-				TTN_Backend::SetLastEffect(m_PostProcessingEffects[index]);
+				finalGBuffer->ApplyEffect(m_PostProcessingEffects[index]);
 			}
-		}
-		//if there are no post processing effects to apply, just save the empty effect
-		else {
-			m_emptyEffect->DrawToScreen();
-			//and save it as the last effect played
-			TTN_Backend::SetLastEffect(m_emptyEffect);
-		}
 
-	/*	gBuffer->DrawBuffersToScreen();
-		illBuffer->DrawToScreen();*/
-		//illBuffer->DrawIllumBuffer();
+		gBuffer->DrawBuffersToScreen();
+		//illBuffer->DrawToScreen();
+		illBuffer->DrawIllumBuffer();
 
-		//unbind the sun buffer
-	//	sunBuffer.Unbind(0);
+			//go through the 2D buffer now
+			index = -1;
+			//apply all of the other post processing effects to the 2D buffer
+			if (m_PostProcessingEffects.size() > 0) {
+
+				//and iterate through all the post processing effects
+				for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
+					//if the effect should be applied
+					if (m_PostProcessingEffects[i]->GetShouldApply()) {
+						//apply the effect
+						if (index == -1)
+							m_PostProcessingEffects[i]->ApplyEffect(starting2DBuffer);
+						else
+							m_PostProcessingEffects[i]->ApplyEffect(m_PostProcessingEffects[index]);
+
+						//and save the index as this was most recent effect applied
+						index = i;
+					}
+				}
+			}
+			//at the end, draw into the final 2D buffer
+			if (index == -1) {
+				//if none should be applied, just apply the starting 2D buffer effect
+				final2DBuffer->ApplyEffect(starting2DBuffer);
+			}
+			else {
+				//if they should be applied, draw from the last effect
+				final2DBuffer->ApplyEffect(m_PostProcessingEffects[index]);
+			}
+
+
+			//clear all of the post processing effects
+			for (int i = 0; i < m_PostProcessingEffects.size(); i++)
+				m_PostProcessingEffects[i]->Clear();
+
+			//go through the particle buffer now
+			index = -1;
+			//apply all of the other post processing effects to the particle buffer
+			if (m_PostProcessingEffects.size() > 0) {
+
+				//and iterate through all the post processing effects
+				for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
+					//if the effect should be applied
+					if (m_PostProcessingEffects[i]->GetShouldApply()) {
+						//apply the effect
+						if (index == -1)
+							m_PostProcessingEffects[i]->ApplyEffect(startingParticleBuffer);
+						else
+							m_PostProcessingEffects[i]->ApplyEffect(m_PostProcessingEffects[index]);
+
+						//and save the index as this was most recent effect applied
+						index = i;
+					}
+				}
+			}
+			//at the end, draw into the final particle buffer
+			if (index == -1) {
+				//if none should be applied, just apply the starting 2D buffer effect
+				finalParticleBuffer->ApplyEffect(startingParticleBuffer);
+			}
+			else {
+				//if they should be applied, draw from the last effect
+				finalParticleBuffer->ApplyEffect(m_PostProcessingEffects[index]);
+			}
+
+			//now that all of the post processing effects have been applied to all 3 buffers, we just need to merge them
+			final2DBuffer->ApplyEffect(finalGBuffer);
+			finalParticleBuffer->ApplyEffect(final2DBuffer);
+			
+			//now that they're all merged into the particle buffer, we just need to put it into the scene buffer
+			if (TTN_Backend::GetLastEffect() != nullptr) {
+				//if there was a previous scene drawn, clear all of the post processing effects and apply them to it 
+
+
+				//clear all of the post processing effects
+				for (int i = 0; i < m_PostProcessingEffects.size(); i++)
+					m_PostProcessingEffects[i]->Clear();
+
+				//go through the effects now
+				index = -1;
+				//apply all of the other post processing effects to the last effect
+				if (m_PostProcessingEffects.size() > 0) {
+
+					//and iterate through all the post processing effects
+					for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
+						//if the effect should be applied
+						if (m_PostProcessingEffects[i]->GetShouldApply()) {
+							//apply the effect
+							if (index == -1)
+								m_PostProcessingEffects[i]->ApplyEffect(TTN_Backend::GetLastEffect());
+							else
+								m_PostProcessingEffects[i]->ApplyEffect(m_PostProcessingEffects[index]);
+
+							//and save the index as this was most recent effect applied
+							index = i;
+						}
+					}
+				}
+				//at the end, draw into the scene buffer
+				if (index == -1) {
+					//if none should be applied, just apply the last effect
+					sceneBuffer->ApplyEffect(TTN_Backend::GetLastEffect());
+				}
+				else {
+					//if they should be applied, draw from the last effect
+					sceneBuffer->ApplyEffect(m_PostProcessingEffects[index]);
+				}
+
+				//now the last scene has also had all of the post processing done on it
+			}
+			
+			//merge the particle buffer into the scene buffer
+			sceneBuffer->ApplyEffect(finalParticleBuffer);
+
+			//draw the scene buffer to the screen
+			sceneBuffer->DrawToScreen();
+
+			//and save the scenebuffer as the last effect, so it will start as the background for the next scene
+			TTN_Backend::SetLastEffect(sceneBuffer);
+		}
 	}
 
 	//renders all the messes in our game
@@ -387,9 +515,6 @@ namespace Titan {
 		m_emptyEffect->Clear();
 		for (int i = 0; i < m_PostProcessingEffects.size(); i++)
 			m_PostProcessingEffects[i]->Clear();
-
-		//gBuffer->Clear();
-		//illBuffer->Clear();
 
 		//get the view and projection martix
 		glm::mat4 vp;
@@ -406,7 +531,7 @@ namespace Titan {
 		glm::mat4 lightViewMatrix = glm::lookAt(glm::vec3(m_Sun.m_lightDirection), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 lightSpaceViewProj = lightProjectionMatrix * lightViewMatrix;
 
-	/*	illBuffer->SetLightSpaceViewProj(lightSpaceViewProj);
+		illBuffer->SetLightSpaceViewProj(lightSpaceViewProj);
 		glm::vec3 camPos = glm::inverse(viewMat) * glm::vec4(0, 0, 0, 1);
 		illBuffer->SetCamPos(camPos);*/
 
@@ -426,6 +551,8 @@ namespace Titan {
 		});
 
 		ReconstructScenegraph();
+
+		/*
 		//shadow depth pass
 		//set the viewport
 		glViewport(0, 0, shadowWidth, shadowHeight);
@@ -456,29 +583,7 @@ namespace Titan {
 		simpleShadowShader->UnBind();
 
 		//unbind the shadow framebuffer
-		shadowBuffer->Unbind();
-
-		//TTN_Shader::sshptr gBufferShader = TTN_Renderer::GetgBufferShader();
-		//gBufferShader->Bind();
-		////loop through all of the meshes
-		//m_RenderGroup->each([&](entt::entity entity, TTN_Transform& transform, TTN_Renderer& renderer) {
-		//	int textureSlot = 0;
-		//	// if renderer has material
-		//	if (renderer.GetMat() != nullptr) {
-		//		//gBufferShader->SetUniformMatrix("u_Model", transform.GetGlobal());
-		//		//gBufferShader->SetUniformMatrix("u_LightSpaceMatrix", lightSpaceViewProj);
-
-		//		gBufferShader->SetUniform("u_UseDiffuse", (int)renderer.GetMat()->GetUseAlbedo());
-		//		renderer.GetMat()->GetAlbedo()->Bind(textureSlot);
-		//		textureSlot++;
-
-		//		renderer.GetMat()->GetSpecularMap()->Bind(textureSlot);
-		//		textureSlot++;
-		//		//gBufferShader->SetUniform("s_Diffuse", renderer.GetMat()->GetAlbedo());
-		//		//gBufferShader->SetUniformMatrix("u_Specular", lightSpaceViewProj);
-		//	}
-		//});
-		//gBufferShader->UnBind();
+		shadowBuffer->Unbind();*/
 
 		//normal render pass
 		glm::ivec2 windowSize = TTN_Backend::GetWindowSize();
@@ -491,15 +596,18 @@ namespace Titan {
 		}
 
 		//bind the empty effect
-		//gBuffer->Bind();
-		m_emptyEffect->BindBuffer(0); //this gets unbound in postRender
+		gBuffer->Bind();
+		//m_emptyEffect->BindBuffer(0); //this gets unbound in postRender
 
+		//and do the deffered pass 
 		TTN_Shader::sshptr currentShader = nullptr;
 		TTN_Material::smatptr currentMatieral = nullptr;
 		TTN_Mesh::smptr currentMesh = nullptr;
 		bool morphAnimatedLastMesh = false;
-
 		m_RenderGroup->each([&](entt::entity entity, TTN_Transform& transform, TTN_Renderer& renderer) {
+			//update the has drawn 3D geo flag
+			m_hasDrawn3DGeo = true;
+
 			//bool to track if uniforms have been reset
 			bool shaderChanged = false;
 			//texture slot to dynamically send textures across different types of shaders
@@ -518,7 +626,10 @@ namespace Titan {
 
 				//if the fragment shader is a default shader other than the skybox
 				if (currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_SKYBOX
-					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::NOT_DEFAULT) {
+					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::NOT_DEFAULT
+					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_NO_TEXTURE
+					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_ALBEDO_ONLY	
+					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FFRAG_BLINN_GBUFFER_ALBEDO_AND_SPECULAR) {
 					//sets some uniforms
 					//scene level ambient lighting
 					currentShader->SetUniform("u_AmbientCol", m_AmbientColor);
@@ -573,29 +684,36 @@ namespace Titan {
 			if (((shaderChanged || currentMatieral != renderer.GetMat()) && renderer.GetMat() != nullptr)) {
 				//set this material to the current material
 				currentMatieral = renderer.GetMat();
-				//set the shinniness
-				currentShader->SetUniform("u_Shininess", currentMatieral->GetShininess());
-				//and material details about the lighting and shading
-				currentShader->SetUniform("u_hasAmbientLighting", (int)(currentMatieral->GetHasAmbient()));
-				currentShader->SetUniform("u_hasSpecularLighting", (int)(currentMatieral->GetHasSpecular()));
-				//the ! is because it has to be reversed in the shader
-				currentShader->SetUniform("u_hasOutline", (int)(!currentMatieral->GetHasOutline()));
-				currentShader->SetUniform("u_OutlineSize", currentMatieral->GetOutlineSize());
 
-				//wheter or not ramps for toon shading should be used
-				currentShader->SetUniform("u_useDiffuseRamp", currentMatieral->GetUseDiffuseRamp());
-				currentShader->SetUniform("u_useSpecularRamp", currentMatieral->GetUseSpecularRamp());
+				//if it's not a gBuffer shader pass a bunch of lighting data
+				if (currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_NO_TEXTURE
+					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_ALBEDO_ONLY
+					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FFRAG_BLINN_GBUFFER_ALBEDO_AND_SPECULAR) {
+					//set the shinniness
+					currentShader->SetUniform("u_Shininess", currentMatieral->GetShininess());
+					//and material details about the lighting and shading
+					currentShader->SetUniform("u_hasAmbientLighting", (int)(currentMatieral->GetHasAmbient()));
+					currentShader->SetUniform("u_hasSpecularLighting", (int)(currentMatieral->GetHasSpecular()));
+					//the ! is because it has to be reversed in the shader
+					currentShader->SetUniform("u_hasOutline", (int)(!currentMatieral->GetHasOutline()));
+					currentShader->SetUniform("u_OutlineSize", currentMatieral->GetOutlineSize());
 
-				//bind the ramps as textures
-				currentMatieral->GetDiffuseRamp()->Bind(10);
-				currentMatieral->GetSpecularRamp()->Bind(11);
+					//wheter or not ramps for toon shading should be used
+					currentShader->SetUniform("u_useDiffuseRamp", currentMatieral->GetUseDiffuseRamp());
+					currentShader->SetUniform("u_useSpecularRamp", currentMatieral->GetUseSpecularRamp());
 
-				//bind the shadow map as a texture
-				//shadowBuffer->BindDepthAsTexture(30);
+					//bind the ramps as textures
+					currentMatieral->GetDiffuseRamp()->Bind(10);
+					currentMatieral->GetSpecularRamp()->Bind(11);
 
-				//set if the current material should use shadows or not
-				currentShader->SetUniform("u_recievesShadows", (int)currentMatieral->GetRecievesShadows());
+					//bind the shadow map as a texture
+					//shadowBuffer->BindDepthAsTexture(30);
 
+					//set if the current material should use shadows or not
+					currentShader->SetUniform("u_recievesShadows", (int)currentMatieral->GetRecievesShadows());
+				}
+				
+				
 				//if this is a height map shader
 				//if they're using a displacement map
 				if (currentShader->GetVertexShaderDefaultStatus() == (int)TTN_DefaultShaders::VERT_COLOR_HEIGHTMAP
@@ -611,7 +729,9 @@ namespace Titan {
 
 				//if it's a shader with albedo
 				if (currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_PHONG_ALBEDO_AND_SPECULAR ||
-					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_PHONG_ALBEDO_ONLY) {
+					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_PHONG_ALBEDO_ONLY || 
+					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_ALBEDO_ONLY ||
+					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FFRAG_BLINN_GBUFFER_ALBEDO_AND_SPECULAR) {
 					//set wheter or not it should use it's albedo texture
 					currentShader->SetUniform("u_UseDiffuse", (int)currentMatieral->GetUseAlbedo());
 					//and bind that albedo
@@ -620,7 +740,8 @@ namespace Titan {
 				}
 
 				//if it's a shader with a specular map
-				if (currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_PHONG_ALBEDO_AND_SPECULAR) {
+				if (currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_PHONG_ALBEDO_AND_SPECULAR ||
+					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FFRAG_BLINN_GBUFFER_ALBEDO_AND_SPECULAR) {
 					//bind that specular map
 					currentMatieral->GetSpecularMap()->Bind(textureSlot);
 					textureSlot++;
@@ -675,7 +796,7 @@ namespace Titan {
 			//and finish by rendering the mesh
 			renderer.Render(transform.GetGlobal(), vp, lightSpaceViewProj);
 		});
-		
+
 		//2D sprite rendering
 		//make a vector to store all the entities to render
 		std::vector<entt::entity> tempSpriteEntitiesToRender = std::vector<entt::entity>();
@@ -693,6 +814,9 @@ namespace Titan {
 		//and loop through, rendering them in reverse order
 		for (int i = tempSpriteEntitiesToRender.size() - 1; i >= 0; i--)
 			Get<TTN_Renderer2D>(tempSpriteEntitiesToRender[i]).Render(Get<TTN_Transform>(tempSpriteEntitiesToRender[i]).GetGlobal(), vp);
+
+		//and unbind the starting 2D buffer
+		starting2DBuffer->UnbindBuffer();
 	}
 
 	//sets wheter or not the scene should be rendered

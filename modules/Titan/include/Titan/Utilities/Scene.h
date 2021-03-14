@@ -154,6 +154,42 @@ namespace Titan {
 		//set the sun for the scene
 		void SetSun(TTN_DirectionalLight newSun);
 
+		static void RenderOnlyPositions() {
+			m_renderOnlyGBufferPositions = true;
+			m_renderOnlyGBufferNormals = false;
+			m_renderOnlyGBufferAlbedo = false;
+			m_renderOnlyIlluminationBuffer = false;
+			m_renderCompositedScene = false;
+		}
+		static void RenderOnlyNormals() {
+			m_renderOnlyGBufferPositions = false;
+			m_renderOnlyGBufferNormals = true;
+			m_renderOnlyGBufferAlbedo = false;
+			m_renderOnlyIlluminationBuffer = false;
+			m_renderCompositedScene = false;
+		}
+		static void RenderOnlyAlbedo() {
+			m_renderOnlyGBufferPositions = false;
+			m_renderOnlyGBufferNormals = false;
+			m_renderOnlyGBufferAlbedo = true;
+			m_renderOnlyIlluminationBuffer = false;
+			m_renderCompositedScene = false;
+		}
+		static void RenderOnlyLightAccululation() {
+			m_renderOnlyGBufferPositions = false;
+			m_renderOnlyGBufferNormals = false;
+			m_renderOnlyGBufferAlbedo = false;
+			m_renderOnlyIlluminationBuffer = true;
+			m_renderCompositedScene = false;
+		}
+		static void RenderCompositedScene() {
+			m_renderOnlyGBufferPositions = false;
+			m_renderOnlyGBufferNormals = false;
+			m_renderOnlyGBufferAlbedo = false;
+			m_renderOnlyIlluminationBuffer = false;
+			m_renderCompositedScene = true;
+		}
+
 	protected:
 		//vector to store the entities of the lights
 		std::vector<entt::entity> m_Lights;
@@ -162,8 +198,25 @@ namespace Titan {
 		TTN_DirectionalLight m_Sun;
 
 		TTN_Framebuffer::sfboptr shadowBuffer;
-		//TTN_GBuffer::sgbufptr gBuffer;
-		//TTN_IlluminationBuffer::sillbufptr illBuffer;
+		TTN_GBuffer::sgbufptr gBuffer;
+		TTN_IlluminationBuffer::sillbufptr illBuffer;
+
+		//empty post processing effect that just draws to a framebuffer
+		TTN_PostEffect::spostptr m_emptyEffect;
+
+		//flag for if 3D geo has been drawn
+		bool m_hasDrawn3DGeo = false;
+
+		//all of the buffers needed to render a scene
+		TTN_GBuffer::sgbufptr gBuffer; //gBuffer for initial 3D geometry rendering
+		TTN_IlluminationBuffer::sillbufptr illBuffer; //illumination buffer for applying lights to the gBuffer
+		TTN_PostEffect::spostptr finalGBuffer; //the 3D buffer that the final 3D geometry after all the post effects have been applied, gets drawn into
+		TTN_PostEffect::spostptr starting2DBuffer; //the inital buffer that 2D geometry gets drawn into
+		TTN_PostEffect::spostptr final2DBuffer; //the 2D buffer that the final 2D geometry after all the post effects have been applied, gets drawn into
+		TTN_PostEffect::spostptr startingParticleBuffer; //the intial buffer that particles get drawn into 
+		TTN_PostEffect::spostptr finalParticleBuffer; //the particle buffer that the final particles after all the post effects have been applied, gets drawn into
+		
+		TTN_PostEffect::spostptr sceneBuffer; //the final buffer that all of the other buffers draw into, and then this draws the final result to the screen
 
 		int shadowWidth = 1024;
 		int shadowHeight = 1024;
@@ -173,6 +226,15 @@ namespace Titan {
 
 		//vector to store the post processing effects
 		std::vector<TTN_PostEffect::spostptr> m_PostProcessingEffects;
+
+	private:
+		//controls for what should render
+		inline static bool m_renderOnlyGBufferPositions = false;
+		inline static bool m_renderOnlyGBufferNormals = false;
+		inline static bool m_renderOnlyGBufferAlbedo = false;
+		inline static bool m_renderOnlyIlluminationBuffer = false;
+		inline static bool m_renderCompositedScene = true;
+
 	private:
 		//name of the scene
 		std::string m_sceneName;
@@ -207,9 +269,6 @@ namespace Titan {
 
 		//vector of titan collision objects, containing pointers to the rigid bodies (from which you can get entity numbers) and glm vec3s for collision normals
 		std::vector<TTN_Collision::scolptr> collisions;
-
-		//empty post processing effect that just draws to a framebuffer
-		TTN_PostEffect::spostptr m_emptyEffect;
 
 		//constructs the TTN_Collision objects
 		void ConstructCollisions();

@@ -188,10 +188,22 @@ namespace Titan {
 			vertexShaderTTNIndentity = (int)shader;
 		}
 
-		else if (shader == TTN_DefaultShaders::FRAG_GBUFFER) {
-			filePath = "shaders/ttn_gBuffer_pass_frag.glsl";
+		else if (shader == TTN_DefaultShaders::FRAG_BLINN_GBUFFER_NO_TEXTURE) {
+			filePath = "shaders/ttn_gBuffer_pass_with_no_texture_frag.glsl";
 			result = LoadShaderStageFromFile(filePath, GL_FRAGMENT_SHADER);
-			vertexShaderTTNIndentity = (int)shader;
+			fragShaderTTNIdentity = (int)shader;
+		}
+
+		else if (shader == TTN_DefaultShaders::FRAG_BLINN_GBUFFER_ALBEDO_ONLY) {
+			filePath = "shaders/ttn_gBuffer_pass_with_albedo_texture_only_frag.glsl";
+			result = LoadShaderStageFromFile(filePath, GL_FRAGMENT_SHADER);
+			fragShaderTTNIdentity = (int)shader;
+		}
+
+		else if (shader == TTN_DefaultShaders::FFRAG_BLINN_GBUFFER_ALBEDO_AND_SPECULAR) {
+			filePath = "shaders/ttn_gBuffer_pass_with_albedo_and_specular_texture_frag.glsl";
+			result = LoadShaderStageFromFile(filePath, GL_FRAGMENT_SHADER);
+			fragShaderTTNIdentity = (int)shader;
 		}
 		else {
 			//if the user tried to load a shader that doesn't,
