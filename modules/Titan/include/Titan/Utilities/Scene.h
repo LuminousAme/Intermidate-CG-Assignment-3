@@ -24,6 +24,7 @@
 #include "Titan/Graphics/UniformBuffer.h"
 #include "Titan/Graphics/Post/ColorCorrect.h"
 #include "Titan/Graphics/Post/BloomEffect.h"
+#include "Titan/Graphics/Post/Pixelation.h"
 #include "Titan/Graphics/GBuffer.h"
 #include "Titan/Graphics/IlluminationBuffer.h"
 //include ImGui stuff
@@ -161,8 +162,8 @@ namespace Titan {
 		TTN_DirectionalLight m_Sun;
 
 		TTN_Framebuffer::sfboptr shadowBuffer;
-		TTN_GBuffer::sgbufptr gBuffer;
-		TTN_IlluminationBuffer::sillbufptr illBuffer;
+		//TTN_GBuffer::sgbufptr gBuffer;
+		//TTN_IlluminationBuffer::sillbufptr illBuffer;
 
 		int shadowWidth = 1024;
 		int shadowHeight = 1024;
