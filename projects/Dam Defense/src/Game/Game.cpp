@@ -141,6 +141,7 @@ void Game::Update(float deltaTime)
 //render the terrain and water
 void Game::PostRender()
 {
+	/*
 	//terrain
 	{
 		//bind the shader
@@ -261,7 +262,7 @@ void Game::PostRender()
 
 		//render the water (just use the same plane as the terrain)
 		terrainPlain->GetVAOPointer()->Render();
-	}
+	}*/
 
 	TTN_Scene::PostRender();
 }
@@ -548,7 +549,7 @@ void Game::SetUpEntities()
 		skyboxRenderer.SetRenderLayer(100);
 		skyboxRenderer.SetCastShadows(false);
 		//attach that renderer to the entity
-		AttachCopy<TTN_Renderer>(skybox, skyboxRenderer);
+		//AttachCopy<TTN_Renderer>(skybox, skyboxRenderer); //remove gbuffer setting later
 
 		//setup a transform for the skybox
 		TTN_Transform skyboxTrans = TTN_Transform(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f / 10.0f));
