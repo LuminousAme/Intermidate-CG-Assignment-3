@@ -522,3 +522,4 @@ void PrepareAssetLoading() {
 	TTN_AssetSystem::AddTexture2DToBeLoaded("Crosshair Hori Line", "textures/crosshair/crosshair hori.png", 1); //the horiztonal lines dropping down on the crosshair
 	TTN_AssetSystem::AddTexture2DToBeLoaded("Crosshair Vert Line", "textures/crosshair/crosshair vert dotted.png", 1); //the vertical line
 }
+

@@ -37,11 +37,11 @@ namespace Titan {
 		m_emptyEffect = TTN_PostEffect::Create();
 		m_emptyEffect->Init(windowSize.x, windowSize.y);
 
-		gBuffer = TTN_GBuffer::Create();
+	/*	gBuffer = TTN_GBuffer::Create();
 		gBuffer->Init(windowSize.x, windowSize.y);
 
 		illBuffer = TTN_IlluminationBuffer::Create();
-		illBuffer->Init(windowSize.x, windowSize.y);
+		illBuffer->Init(windowSize.x, windowSize.y);*/
 
 		finalGBuffer = TTN_CombineFrameBuffer::Create();
 		finalGBuffer->Init(windowSize.x, windowSize.y);
@@ -97,11 +97,11 @@ namespace Titan {
 		m_emptyEffect = TTN_PostEffect::Create();
 		m_emptyEffect->Init(windowSize.x, windowSize.y);
 
-		gBuffer = TTN_GBuffer::Create();
+		/*gBuffer = TTN_GBuffer::Create();
 		gBuffer->Init(windowSize.x, windowSize.y);
 
 		illBuffer = TTN_IlluminationBuffer::Create();
-		illBuffer->Init(windowSize.x, windowSize.y);
+		illBuffer->Init(windowSize.x, windowSize.y);*/
 
 		finalGBuffer = TTN_CombineFrameBuffer::Create();
 		finalGBuffer->Init(windowSize.x, windowSize.y);
@@ -368,8 +368,10 @@ namespace Titan {
 				viewMat, Get<TTN_Camera>(m_Cam).GetProj());
 		}
 
-		//unbind the starting particle buffer
-		startingParticleBuffer->UnbindBuffer();
+		//unbind the empty effect and run through all the post effect
+		//m_emptyEffect->UnbindBuffer();
+		gBuffer->Unbind();
+		illBuffer->BindBuffer(0);
 
 		//now draw the skybox into the illmination buffer
 		glDisable(GL_BLEND);
@@ -454,9 +456,9 @@ namespace Titan {
 				finalGBuffer->ApplyEffect(m_PostProcessingEffects[index]);
 			}
 
-			//clear all of the post processing effects
-			for (int i = 0; i < m_PostProcessingEffects.size(); i++)
-				m_PostProcessingEffects[i]->Clear();
+		gBuffer->DrawBuffersToScreen();
+		//illBuffer->DrawToScreen();
+		illBuffer->DrawIllumBuffer();
 
 			//go through the 2D buffer now
 			index = -1;
@@ -600,13 +602,12 @@ namespace Titan {
 
 		//set up light space matrix
 		glm::mat4 lightProjectionMatrix = glm::ortho(-shadowOrthoXY, shadowOrthoXY, -shadowOrthoXY, shadowOrthoXY, -shadowOrthoZ, shadowOrthoZ);
-		glm::mat4 lightViewMatrix = glm::lookAt(glm::vec3(-illBuffer->GetSunRef().m_lightDirection), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 lightViewMatrix = glm::lookAt(glm::vec3(m_Sun.m_lightDirection), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 lightSpaceViewProj = lightProjectionMatrix * lightViewMatrix;
 
-		//set data for the illumination buffer
 		illBuffer->SetLightSpaceViewProj(lightSpaceViewProj);
 		glm::vec3 camPos = glm::inverse(viewMat) * glm::vec4(0, 0, 0, 1);
-		illBuffer->SetCamPos(camPos);
+		illBuffer->SetCamPos(camPos);*/
 
 		//sort our render group
 		m_RenderGroup->sort<TTN_Renderer>([](const TTN_Renderer& l, const TTN_Renderer& r) {
@@ -673,6 +674,7 @@ namespace Titan {
 
 		//bind the gbuffer
 		gBuffer->Bind();
+		//m_emptyEffect->BindBuffer(0); //this gets unbound in postRender
 
 		//and do the deffered pass 
 		TTN_Shader::sshptr currentShader = nullptr;

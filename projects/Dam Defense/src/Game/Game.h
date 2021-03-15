@@ -375,6 +375,10 @@ protected:
 
 	//the radius of the effect
 	float m_radius = 1.0f;
+
+	//pixelation effect 
+	TTN_Pixelation::spixelptr m_pixelation;;
+	float m_pixels = 512.f;
 	
 	//bools for imgui controls
 	bool m_applyWarmLut;

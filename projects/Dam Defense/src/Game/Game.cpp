@@ -460,9 +460,6 @@ void Game::SetUpAssets()
 	damMat->SetAlbedo(damText);
 	m_mats.push_back(damMat);
 
-	TTN_Shader::sshptr gBufferShader = TTN_Renderer::GetgBufferShader();
-	gBufferShader->Bind();
-
 	int textureSlot = 0;
 	for (int i = 0; i < m_mats.size(); i++) {
 		m_mats[i]->SetDiffuseRamp(TTN_AssetSystem::GetTexture2D("blue ramp"));
@@ -479,8 +476,6 @@ void Game::SetUpAssets()
 		//gBufferShader->SetUniform("s_Diffuse", renderer.GetMat()->GetAlbedo());
 		//gBufferShader->SetUniformMatrix("u_Specular", lightSpaceViewProj);
 	}
-
-	gBufferShader->UnBind();
 }
 
 //create the scene's initial entities
@@ -759,17 +754,24 @@ void Game::SetUpOtherData()
 	m_PostProcessingEffects.push_back(m_colorCorrectEffect);
 
 	//bloom
-	//m_bloomEffect = TTN_BloomEffect::Create();
-	//m_bloomEffect->Init(windowSize.x, windowSize.y);
-	//m_bloomEffect->SetShouldApply(false);
-	////add it to the list
-	//m_PostProcessingEffects.push_back(m_bloomEffect);
+	m_bloomEffect = TTN_BloomEffect::Create();
+	m_bloomEffect->Init(windowSize.x, windowSize.y);
+	m_bloomEffect->SetShouldApply(false);
+	//add it to the list
+	m_PostProcessingEffects.push_back(m_bloomEffect);
 
-	////bloom stuff
-	//m_bloomEffect->SetNumOfPasses(m_passes);
-	//m_bloomEffect->SetBlurDownScale(m_downscale);
-	//m_bloomEffect->SetThreshold(m_threshold);
-	//m_bloomEffect->SetRadius(m_radius);
+	//bloom stuff
+	m_bloomEffect->SetNumOfPasses(m_passes);
+	m_bloomEffect->SetBlurDownScale(m_downscale);
+	m_bloomEffect->SetThreshold(m_threshold);
+	m_bloomEffect->SetRadius(m_radius);
+
+	m_pixelation = TTN_Pixelation::Create();
+	m_pixelation->Init(windowSize.x, windowSize.y);
+	m_pixelation->SetShouldApply(true);
+	//add it to the list
+	m_PostProcessingEffects.push_back(m_pixelation);
+	m_pixelation->SetPixels(m_pixels);
 
 	//set all 3 effects to false
 	m_applyWarmLut = false;
@@ -824,6 +826,16 @@ void Game::RestartData()
 	//shop stuff
 	healAmount = 10.0f;
 	healCounter = 0;
+
+	//shaders and post effect stuff
+	//bloom
+	m_passes = 5;
+	m_downscale = 1;
+	m_threshold = 0.625f;
+	m_radius = 1.0f;
+
+	//pixelation post effect
+	m_pixels = 512.f;
 
 	//enemy and wave data setup
 	m_currentWave = 0;
@@ -892,8 +904,6 @@ void Game::RestartData()
 
 	mousePos = TTN_Application::TTN_Input::GetMousePosition();
 	firstFrame = true;
-
-	float m_passes = 0.f;
 }
 
 #pragma endregion
@@ -2187,6 +2197,11 @@ void Game::ImGui()
 			//set the size of the outline in the materials
 			for (int i = 0; i < m_mats.size(); i++)
 				m_mats[i]->SetOutlineSize(m_outlineSize);
+		}
+
+		if (ImGui::SliderFloat("Pixelation", &m_pixels, 128.f, 4096.f)) {
+			//set the size of the outline in the materials
+			m_pixelation->SetPixels(m_pixels);
 		}
 
 		if (ImGui::SliderInt("Bloom Passes", &m_passes, 0, 15)) {
