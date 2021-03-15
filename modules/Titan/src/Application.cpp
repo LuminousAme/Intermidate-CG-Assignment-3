@@ -92,7 +92,7 @@ namespace Titan {
 		m_soundEngine.Init();
 		
 		//Set the background colour for our scene to the base red
-		glClearColor(1.0f, 1.0f, 1.0f, 0.3f);
+		glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 	}
 
 	//function to check if the window is being closed

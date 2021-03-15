@@ -37,11 +37,11 @@ namespace Titan {
 		m_emptyEffect = TTN_PostEffect::Create();
 		m_emptyEffect->Init(windowSize.x, windowSize.y);
 
-	/*	gBuffer = TTN_GBuffer::Create();
+		gBuffer = TTN_GBuffer::Create();
 		gBuffer->Init(windowSize.x, windowSize.y);
 
 		illBuffer = TTN_IlluminationBuffer::Create();
-		illBuffer->Init(windowSize.x, windowSize.y);*/
+		illBuffer->Init(windowSize.x, windowSize.y);
 
 		finalGBuffer = TTN_CombineFrameBuffer::Create();
 		finalGBuffer->Init(windowSize.x, windowSize.y);
@@ -97,11 +97,11 @@ namespace Titan {
 		m_emptyEffect = TTN_PostEffect::Create();
 		m_emptyEffect->Init(windowSize.x, windowSize.y);
 
-		/*gBuffer = TTN_GBuffer::Create();
+		gBuffer = TTN_GBuffer::Create();
 		gBuffer->Init(windowSize.x, windowSize.y);
 
 		illBuffer = TTN_IlluminationBuffer::Create();
-		illBuffer->Init(windowSize.x, windowSize.y);*/
+		illBuffer->Init(windowSize.x, windowSize.y);
 
 		finalGBuffer = TTN_CombineFrameBuffer::Create();
 		finalGBuffer->Init(windowSize.x, windowSize.y);
@@ -368,37 +368,11 @@ namespace Titan {
 				viewMat, Get<TTN_Camera>(m_Cam).GetProj());
 		}
 
+		startingParticleBuffer->UnbindBuffer();
+
 		//unbind the empty effect and run through all the post effect
 		//m_emptyEffect->UnbindBuffer();
-		gBuffer->Unbind();
 		illBuffer->BindBuffer(0);
-
-		//now draw the skybox into the illmination buffer
-		glDisable(GL_BLEND);
-		illBuffer->BindBuffer(0);
-
-		if (m_Skybox != entt::null && Has<TTN_Renderer>(m_Skybox) && Has<TTN_Transform>(m_Skybox)) {
-			//get and bind the shader
-			TTN_Shader::sshptr tempShader = Get<TTN_Renderer>(m_Skybox).GetShader();
-			tempShader->Bind();
-
-			//bind the skybox texture
-			Get<TTN_Renderer>(m_Skybox).GetMat()->GetSkybox()->Bind(0);
-			//set the rotation matrix uniform
-			tempShader->SetUniformMatrix("u_EnvironmentRotation", glm::mat3(glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1, 0, 0))));
-			//set the skybox matrix uniform
-			tempShader->SetUniformMatrix("u_SkyboxMatrix", Get<TTN_Camera>(m_Cam).GetProj() * glm::mat4(glm::mat3(viewMat)));
-
-			//draw the skybox
-			Get<TTN_Renderer>(m_Skybox).Render(Get<TTN_Transform>(m_Skybox).GetGlobal(), Get<TTN_Camera>(m_Cam).GetProj() * viewMat, glm::mat4(1.0f));
-
-			//unbind the shader
-			tempShader->UnBind();
-		}
-
-		//and unbind the buffer
-		illBuffer->UnbindBuffer();
-		glEnable(GL_BLEND);
 
 		//now figure out what post effects should be applied
 
@@ -456,9 +430,9 @@ namespace Titan {
 				finalGBuffer->ApplyEffect(m_PostProcessingEffects[index]);
 			}
 
-		gBuffer->DrawBuffersToScreen();
-		//illBuffer->DrawToScreen();
-		illBuffer->DrawIllumBuffer();
+			//clear all the post processing effects
+			for (int i = 0; i < m_PostProcessingEffects.size(); i++)
+				m_PostProcessingEffects[i]->Clear();
 
 			//go through the 2D buffer now
 			index = -1;
@@ -491,7 +465,7 @@ namespace Titan {
 			}
 
 
-			//clear all of the post processing effects
+			//clear all the post processing effects
 			for (int i = 0; i < m_PostProcessingEffects.size(); i++)
 				m_PostProcessingEffects[i]->Clear();
 
@@ -532,11 +506,6 @@ namespace Titan {
 			//now that they're all merged into the particle buffer, we just need to put it into the scene buffer
 			if (TTN_Backend::GetLastEffect() != nullptr) {
 				//if there was a previous scene drawn, clear all of the post processing effects and apply them to it 
-
-
-				//clear all of the post processing effects
-				for (int i = 0; i < m_PostProcessingEffects.size(); i++)
-					m_PostProcessingEffects[i]->Clear();
 
 				//go through the effects now
 				index = -1;
@@ -607,7 +576,7 @@ namespace Titan {
 
 		illBuffer->SetLightSpaceViewProj(lightSpaceViewProj);
 		glm::vec3 camPos = glm::inverse(viewMat) * glm::vec4(0, 0, 0, 1);
-		illBuffer->SetCamPos(camPos);*/
+		illBuffer->SetCamPos(camPos);
 
 		//sort our render group
 		m_RenderGroup->sort<TTN_Renderer>([](const TTN_Renderer& l, const TTN_Renderer& r) {
@@ -881,11 +850,11 @@ namespace Titan {
 
 		//renable blending so it works for everything else
 		glEnable(GL_BLEND);
-
-		//bind the starting 2D buffer
-		starting2DBuffer->BindBuffer(0);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		//2D sprite rendering
+		starting2DBuffer->BindBuffer(0);
+
 		//make a vector to store all the entities to render
 		std::vector<entt::entity> tempSpriteEntitiesToRender = std::vector<entt::entity>();
 		//go through every entity with a 2d renderer and a transform, addding them to the list of entities to render

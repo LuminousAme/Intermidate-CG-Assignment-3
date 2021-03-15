@@ -60,10 +60,10 @@ namespace Titan {
 
 	void TTN_Renderer::InitgBufferRendering()
 	{
-		s_gBufferPassShader = TTN_Shader::Create();
-		s_gBufferPassShader->LoadShaderStageFromFile("shaders/ttn_vert_color.glsl", GL_VERTEX_SHADER);
-		s_gBufferPassShader->LoadShaderStageFromFile("shaders/ttn_gBuffer_pass_frag.glsl", GL_FRAGMENT_SHADER);
-		s_gBufferPassShader->Link();
+		//s_gBufferPassShader = TTN_Shader::Create();
+		//s_gBufferPassShader->LoadShaderStageFromFile("shaders/ttn_vert_color.glsl", GL_VERTEX_SHADER);
+		//s_gBufferPassShader->LoadShaderStageFromFile("shaders/ttn_gBuffer_pass_frag.glsl", GL_FRAGMENT_SHADER);
+		//s_gBufferPassShader->Link();
 	}
 
 	//destructor, destroys the object

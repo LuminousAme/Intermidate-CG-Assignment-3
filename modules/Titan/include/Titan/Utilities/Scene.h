@@ -204,8 +204,6 @@ namespace Titan {
 		TTN_DirectionalLight m_Sun;
 
 		TTN_Framebuffer::sfboptr shadowBuffer;
-		TTN_GBuffer::sgbufptr gBuffer;
-		TTN_IlluminationBuffer::sillbufptr illBuffer;
 
 		//empty post processing effect that just draws to a framebuffer
 		TTN_PostEffect::spostptr m_emptyEffect;

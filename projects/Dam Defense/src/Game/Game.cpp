@@ -225,6 +225,7 @@ void Game::PostRender()
 
 	//enable blending again so it works on everything else
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	TTN_Scene::PostRender();
 }
@@ -499,14 +500,14 @@ void Game::SetUpEntities()
 	//entity for the skybox
 	{
 		skybox = CreateEntity();
-
+		SetSkyboxEntity(skybox);
 		//setup a mesh renderer for the skybox
 		TTN_Renderer skyboxRenderer = TTN_Renderer(skyboxMesh, shaderProgramSkybox);
 		skyboxRenderer.SetMat(skyboxMat);
 		skyboxRenderer.SetRenderLayer(100);
 		skyboxRenderer.SetCastShadows(false);
 		//attach that renderer to the entity
-		//AttachCopy<TTN_Renderer>(skybox, skyboxRenderer); //remove gbuffer setting later
+		AttachCopy<TTN_Renderer>(skybox, skyboxRenderer); //remove gbuffer setting later
 
 		//setup a transform for the skybox
 		TTN_Transform skyboxTrans = TTN_Transform(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f / 10.0f));

@@ -42,9 +42,6 @@ namespace Titan {
 		//binds the shader
 		BindShader(m_shaders.size() - 1);
 
-		//clear the second framebuffer
-		m_buffers[1]->Clear();
-
 		//draw the conents of the first framebuffer to the second framebuffer
 		//binds the color
 		BindColorAsTexture(0,0,0);
@@ -52,9 +49,6 @@ namespace Titan {
 		m_buffers[1]->RenderToFSQ();
 		//unbind the texutre
 		UnbindTexture(0);
-
-		//clear the first framebuffer
-		m_buffers[0]->Clear();
 
 		//draw the conents of the previous effect into the first buffer
 		//binds the color
