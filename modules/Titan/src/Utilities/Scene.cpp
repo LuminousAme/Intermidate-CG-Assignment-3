@@ -17,7 +17,7 @@ namespace Titan {
 		m_RenderGroup = std::make_unique<RenderGroupType>(m_Registry->group<TTN_Transform, TTN_Renderer>());
 		m_AmbientColor = glm::vec3(1.0f);
 		m_AmbientStrength = 1.0f;
-
+		
 		//setting up physics world
 		collisionConfig = new btDefaultCollisionConfiguration(); //default collision config
 		dispatcher = new btCollisionDispatcher(collisionConfig); //default collision dispatcher
@@ -37,11 +37,11 @@ namespace Titan {
 		m_emptyEffect = TTN_PostEffect::Create();
 		m_emptyEffect->Init(windowSize.x, windowSize.y);
 
-	/*	gBuffer = TTN_GBuffer::Create();
+		gBuffer = TTN_GBuffer::Create();
 		gBuffer->Init(windowSize.x, windowSize.y);
 
 		illBuffer = TTN_IlluminationBuffer::Create();
-		illBuffer->Init(windowSize.x, windowSize.y);*/
+		illBuffer->Init(windowSize.x, windowSize.y);
 
 		//shadow buffer
 		shadowWidth = 1024;
@@ -83,11 +83,11 @@ namespace Titan {
 		m_emptyEffect = TTN_PostEffect::Create();
 		m_emptyEffect->Init(windowSize.x, windowSize.y);
 
-		/*gBuffer = TTN_GBuffer::Create();
+		gBuffer = TTN_GBuffer::Create();
 		gBuffer->Init(windowSize.x, windowSize.y);
 
 		illBuffer = TTN_IlluminationBuffer::Create();
-		illBuffer->Init(windowSize.x, windowSize.y);*/
+		illBuffer->Init(windowSize.x, windowSize.y);
 
 		//shadow buffer
 		shadowWidth = 1024;
@@ -340,16 +340,32 @@ namespace Titan {
 				viewMat, Get<TTN_Camera>(m_Cam).GetProj());
 		}
 
-		//unbind the empty effect and run through all the post effect
-		//m_emptyEffect->UnbindBuffer();
-		gBuffer->Unbind();
-		illBuffer->BindBuffer(0);
+		//unbind the starting particle buffer
+		startingParticleBuffer->UnbindBuffer();
 
 		//now figure out what post effects should be applied
 
-		shadowBuffer->BindDepthAsTexture(30);
-		illBuffer->ApplyEffect(gBuffer);
-		shadowBuffer->UnbindTexture(30);
+		//if only the positions should be drawn, only draw the gBuffers positions
+		if (m_hasDrawn3DGeo && m_renderOnlyGBufferPositions) {
+			gBuffer->DrawPositionBuffer();
+		}
+		//if only the normals should be drawn, only draw the gBuffers normals
+		else if (m_hasDrawn3DGeo && m_renderOnlyGBufferNormals) {
+			gBuffer->DrawNormalBuffer();
+		}
+		//if only the albedo should be drawn, only draw the gBuffer albedo
+		else if (m_hasDrawn3DGeo && m_renderOnlyGBufferAlbedo) {
+			gBuffer->DrawAlbedoBuffer();
+		}
+		//if only the illumination buffer should be drawn, only draw the illumination buffer
+		else if (m_hasDrawn3DGeo && m_renderOnlyIlluminationBuffer) {
+			//fill in later
+			illBuffer->DrawIllumBuffer();
+		}
+		//if everything should be drawn, draw everything
+		else if (m_renderCompositedScene) {
+			//apply the gbuffer to the illumination buffer
+			illBuffer->ApplyEffect(gBuffer);
 
 			//track the index of the last effect that was applied
 			int index = -1;
@@ -382,9 +398,9 @@ namespace Titan {
 				finalGBuffer->ApplyEffect(m_PostProcessingEffects[index]);
 			}
 
-		gBuffer->DrawBuffersToScreen();
-		//illBuffer->DrawToScreen();
-		illBuffer->DrawIllumBuffer();
+			//clear all of the post processing effects
+			for (int i = 0; i < m_PostProcessingEffects.size(); i++)
+				m_PostProcessingEffects[i]->Clear();
 
 			//go through the 2D buffer now
 			index = -1;
@@ -454,7 +470,7 @@ namespace Titan {
 			//now that all of the post processing effects have been applied to all 3 buffers, we just need to merge them
 			final2DBuffer->ApplyEffect(finalGBuffer);
 			finalParticleBuffer->ApplyEffect(final2DBuffer);
-			
+
 			//now that they're all merged into the particle buffer, we just need to put it into the scene buffer
 			if (TTN_Backend::GetLastEffect() != nullptr) {
 				//if there was a previous scene drawn, clear all of the post processing effects and apply them to it 
@@ -496,7 +512,7 @@ namespace Titan {
 
 				//now the last scene has also had all of the post processing done on it
 			}
-			
+
 			//merge the particle buffer into the scene buffer
 			sceneBuffer->ApplyEffect(finalParticleBuffer);
 
@@ -528,12 +544,13 @@ namespace Titan {
 
 		//set up light space matrix
 		glm::mat4 lightProjectionMatrix = glm::ortho(-shadowOrthoXY, shadowOrthoXY, -shadowOrthoXY, shadowOrthoXY, -shadowOrthoZ, shadowOrthoZ);
-		glm::mat4 lightViewMatrix = glm::lookAt(glm::vec3(m_Sun.m_lightDirection), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 lightViewMatrix = glm::lookAt(glm::vec3(-illBuffer->GetSunRef().m_lightDirection), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 lightSpaceViewProj = lightProjectionMatrix * lightViewMatrix;
 
+		//set data for the illumination buffer
 		illBuffer->SetLightSpaceViewProj(lightSpaceViewProj);
 		glm::vec3 camPos = glm::inverse(viewMat) * glm::vec4(0, 0, 0, 1);
-		illBuffer->SetCamPos(camPos);*/
+		illBuffer->SetCamPos(camPos);
 
 		//sort our render group
 		m_RenderGroup->sort<TTN_Renderer>([](const TTN_Renderer& l, const TTN_Renderer& r) {
@@ -595,9 +612,8 @@ namespace Titan {
 			m_emptyEffect->ApplyEffect(TTN_Backend::GetLastEffect());
 		}
 
-		//bind the empty effect
+		//bind the gbuffer
 		gBuffer->Bind();
-		//m_emptyEffect->BindBuffer(0); //this gets unbound in postRender
 
 		//and do the deffered pass 
 		TTN_Shader::sshptr currentShader = nullptr;
@@ -628,7 +644,7 @@ namespace Titan {
 				if (currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_SKYBOX
 					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::NOT_DEFAULT
 					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_NO_TEXTURE
-					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_ALBEDO_ONLY	
+					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_ALBEDO_ONLY
 					&& currentShader->GetFragShaderDefaultStatus() != (int)TTN_DefaultShaders::FFRAG_BLINN_GBUFFER_ALBEDO_AND_SPECULAR) {
 					//sets some uniforms
 					//scene level ambient lighting
@@ -712,8 +728,8 @@ namespace Titan {
 					//set if the current material should use shadows or not
 					currentShader->SetUniform("u_recievesShadows", (int)currentMatieral->GetRecievesShadows());
 				}
-				
-				
+
+
 				//if this is a height map shader
 				//if they're using a displacement map
 				if (currentShader->GetVertexShaderDefaultStatus() == (int)TTN_DefaultShaders::VERT_COLOR_HEIGHTMAP
@@ -729,7 +745,7 @@ namespace Titan {
 
 				//if it's a shader with albedo
 				if (currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_PHONG_ALBEDO_AND_SPECULAR ||
-					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_PHONG_ALBEDO_ONLY || 
+					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_PHONG_ALBEDO_ONLY ||
 					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FRAG_BLINN_GBUFFER_ALBEDO_ONLY ||
 					currentShader->GetFragShaderDefaultStatus() == (int)TTN_DefaultShaders::FFRAG_BLINN_GBUFFER_ALBEDO_AND_SPECULAR) {
 					//set wheter or not it should use it's albedo texture
@@ -796,6 +812,12 @@ namespace Titan {
 			//and finish by rendering the mesh
 			renderer.Render(transform.GetGlobal(), vp, lightSpaceViewProj);
 		});
+
+		//unbind the gBuffer
+		gBuffer->Unbind();
+
+		//bind the starting 2D buffer
+		starting2DBuffer->BindBuffer(0);
 
 		//2D sprite rendering
 		//make a vector to store all the entities to render

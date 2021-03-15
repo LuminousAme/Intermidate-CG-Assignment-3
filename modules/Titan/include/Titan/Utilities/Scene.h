@@ -25,6 +25,7 @@
 #include "Titan/Graphics/Post/ColorCorrect.h"
 #include "Titan/Graphics/Post/BloomEffect.h"
 #include "Titan/Graphics/Post/Pixelation.h"
+#include "Titan/Graphics/Post/FilmGrain.h"
 #include "Titan/Graphics/GBuffer.h"
 #include "Titan/Graphics/IlluminationBuffer.h"
 //include ImGui stuff
@@ -198,8 +199,6 @@ namespace Titan {
 		TTN_DirectionalLight m_Sun;
 
 		TTN_Framebuffer::sfboptr shadowBuffer;
-		TTN_GBuffer::sgbufptr gBuffer;
-		TTN_IlluminationBuffer::sillbufptr illBuffer;
 
 		//empty post processing effect that just draws to a framebuffer
 		TTN_PostEffect::spostptr m_emptyEffect;
@@ -215,7 +214,7 @@ namespace Titan {
 		TTN_PostEffect::spostptr final2DBuffer; //the 2D buffer that the final 2D geometry after all the post effects have been applied, gets drawn into
 		TTN_PostEffect::spostptr startingParticleBuffer; //the intial buffer that particles get drawn into 
 		TTN_PostEffect::spostptr finalParticleBuffer; //the particle buffer that the final particles after all the post effects have been applied, gets drawn into
-		
+
 		TTN_PostEffect::spostptr sceneBuffer; //the final buffer that all of the other buffers draw into, and then this draws the final result to the screen
 
 		int shadowWidth = 1024;

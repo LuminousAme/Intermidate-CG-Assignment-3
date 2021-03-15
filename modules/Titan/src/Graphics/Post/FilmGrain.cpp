@@ -1,9 +1,9 @@
 #include "Titan/ttn_pch.h"
-#include "Titan/Graphics/Post/Pixelation.h"
+#include "Titan/Graphics/Post/FilmGrain.h"
 
 namespace Titan {
 	//initliazes the pixelation effect
-	void TTN_Pixelation::Init(unsigned width, unsigned height)
+	void TTN_FilmGrain::Init(unsigned width, unsigned height)
 	{
 		//Set up framebuffers
 		//creates a new framebuffer with a basic color and depth target
@@ -19,17 +19,17 @@ namespace Titan {
 		m_shaders.push_back(TTN_Shader::Create());
 		//load in the shader
 		m_shaders[index]->LoadShaderStageFromFile("shaders/Post/ttn_passthrough_vert.glsl", GL_VERTEX_SHADER);
-		m_shaders[index]->LoadShaderStageFromFile("shaders/Post/TTN_Pixelation_frag.glsl", GL_FRAGMENT_SHADER);
+		m_shaders[index]->LoadShaderStageFromFile("shaders/Post/ttn_film_grain_frag.glsl", GL_FRAGMENT_SHADER);
 		m_shaders[index]->Link();
 
 		//init the original
 		TTN_PostEffect::Init(width, height);
 	}
 
-	void TTN_Pixelation::ApplyEffect(TTN_PostEffect::spostptr buffer)
+	void TTN_FilmGrain::ApplyEffect(TTN_PostEffect::spostptr buffer)
 	{
 		BindShader(m_shaders.size() - 2);
-		m_shaders[m_shaders.size() - 2]->SetUniform("u_Pixels", m_pixel);
+		m_shaders[m_shaders.size() - 2]->SetUniform("u_Amount", m_amount);
 
 		//binds the color
 		buffer->BindColorAsTexture(0, 0, 0);

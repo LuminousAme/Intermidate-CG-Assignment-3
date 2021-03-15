@@ -1,5 +1,5 @@
 //Titan Engine by Atlas X Games
-//Pixelation.h - Header for the class for pixelated post processing effects
+//filmgrain.h - Header for the class for film grain post processing effects
 #pragma once
 
 //include the precompile header with a bunch of system
@@ -8,15 +8,15 @@
 
 namespace Titan {
 	//class for color correction post processing effects
-	class TTN_Pixelation : public TTN_PostEffect
+	class TTN_FilmGrain : public TTN_PostEffect
 	{
 	public:
 		//defines a special easier to use name for shared(smart) pointers to the class
-		typedef std::shared_ptr<TTN_Pixelation> spixelptr;
+		typedef std::shared_ptr<TTN_FilmGrain> sfilmgptr;
 
 		//creates and returns a shared(smart) pointer to the class
-		static inline spixelptr Create() {
-			return std::make_shared<TTN_Pixelation>();
+		static inline sfilmgptr Create() {
+			return std::make_shared<TTN_FilmGrain>();
 		}
 
 	public:
@@ -28,11 +28,11 @@ namespace Titan {
 		void ApplyEffect(TTN_PostEffect::spostptr buffer) override;
 
 		//Getters
-		float GetPixels() const { return m_pixel; }
+		float GetAmount() const { return m_amount; }
 		//Setters
-		void SetPixels(float intensity) { m_pixel = intensity; }
+		void SetAmount(float intensity) { m_amount = intensity; }
 	private:
 		//intensity of the effect
-		float m_pixel = 1024.0f;
+		float m_amount = 0.10f;
 	};
 }

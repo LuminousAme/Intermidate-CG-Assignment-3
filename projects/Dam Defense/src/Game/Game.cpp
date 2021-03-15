@@ -705,7 +705,6 @@ void Game::SetUpOtherData()
 	RestartData();
 
 	Bombing = false;
-
 	//create the particle templates
 	//smoke particle
 	{
@@ -804,12 +803,26 @@ void Game::SetUpOtherData()
 	m_bloomEffect->SetThreshold(m_threshold);
 	m_bloomEffect->SetRadius(m_radius);
 
+	//pixel effect
 	m_pixelation = TTN_Pixelation::Create();
 	m_pixelation->Init(windowSize.x, windowSize.y);
-	m_pixelation->SetShouldApply(true);
+	m_pixelation->SetShouldApply(false);
 	//add it to the list
 	m_PostProcessingEffects.push_back(m_pixelation);
 	m_pixelation->SetPixels(m_pixels);
+
+	//pixel effect
+	m_filmGrain = TTN_FilmGrain::Create();
+	m_filmGrain->Init(windowSize.x, windowSize.y);
+	m_filmGrain->SetShouldApply(true);
+	//add it to the list
+	m_PostProcessingEffects.push_back(m_filmGrain);
+	m_filmGrain->SetAmount(m_amount);
+
+	//bools for post effects
+	m_applyBloom = false;
+	m_applyPixel = false;
+	m_applyFilm = false;
 
 	//set all 3 effects to false
 	m_applyWarmLut = false;
@@ -867,13 +880,14 @@ void Game::RestartData()
 
 	//shaders and post effect stuff
 	//bloom
-	m_passes = 5;
-	m_downscale = 1;
-	m_threshold = 0.625f;
-	m_radius = 1.0f;
-
-	//pixelation post effect
-	m_pixels = 512.f;
+	//m_passes = 5;
+	//m_downscale = 1;
+	//m_threshold = 0.625f;
+	//m_radius = 1.0f;
+	////pixelation post effect
+	//m_pixels = 512.f;
+	////film grain
+	//m_amount = 0.1f;
 
 	//enemy and wave data setup
 	m_currentWave = 0;
@@ -2175,7 +2189,7 @@ void Game::ImGui()
 		}
 	}
 
-	if (ImGui::CollapsingHeader("Point and SceneLight Controls")) {
+	if (ImGui::CollapsingHeader("Point and Scene Light Controls")) {
 		ImGui::Text("Maximum number of lights: 16");
 
 		//scene level lighting
@@ -2302,9 +2316,61 @@ void Game::ImGui()
 				m_mats[i]->SetOutlineSize(m_outlineSize);
 		}
 
+		//post effect controls
+
+		//toogles the effect on or off
+		if (ImGui::Checkbox("Pixelation ", &m_applyPixel)) {
+			switch (m_applyPixel)
+			{
+			case true:
+				//if it's been turned on set the effect to render
+				m_pixelation->SetShouldApply(true);
+				break;
+			case false:
+				//if it's been turned of set the effect not to render
+				m_pixelation->SetShouldApply(false);
+				break;
+			}
+		}
+
+		//toogles the effect on or off
+		if (ImGui::Checkbox("Bloom ", &m_applyBloom)) {
+			switch (m_applyBloom)
+			{
+			case true:
+				//if it's been turned on set the effect to render
+				m_bloomEffect->SetShouldApply(true);
+				break;
+			case false:
+				//if it's been turned of set the effect not to render
+				m_bloomEffect->SetShouldApply(false);
+				break;
+			}
+		}
+
+		//toogles the effect on or off
+		if (ImGui::Checkbox("Film Grain ", &m_applyFilm)) {
+			switch (m_applyFilm)
+			{
+			case true:
+				//if it's been turned on set the effect to render
+				m_filmGrain->SetShouldApply(true);
+				break;
+			case false:
+				//if it's been turned of set the effect not to render
+				m_filmGrain->SetShouldApply(false);
+				break;
+			}
+		}
+
 		if (ImGui::SliderFloat("Pixelation", &m_pixels, 128.f, 4096.f)) {
 			//set the size of the outline in the materials
 			m_pixelation->SetPixels(m_pixels);
+		}
+
+		if (ImGui::SliderFloat("Film Grain", &m_amount, 0.01f, 1.f)) {
+			//set the size of the outline in the materials
+			m_filmGrain->SetAmount(m_amount);
 		}
 
 		if (ImGui::SliderInt("Bloom Passes", &m_passes, 0, 15)) {

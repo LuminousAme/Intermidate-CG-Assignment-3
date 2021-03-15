@@ -47,7 +47,6 @@ void SplashCard::InitScene()
 		//create a sprite renderer for the logo
 		TTN_Renderer2D logoRenderer2D = TTN_Renderer2D(logoText, glm::vec4(1.0f, 1.0f, 1.0f, 0.0f), 1);
 		AttachCopy(logo, logoRenderer2D);
-
 	}
 
 	//background
@@ -62,7 +61,7 @@ void SplashCard::InitScene()
 		//create a sprite renderer for the background
 		TTN_Renderer2D bgRenderer2D = TTN_Renderer2D(bgText, glm::vec4(1.0f), 1);
 		AttachCopy(background, bgRenderer2D);
-	}	
+	}
 }
 
 //update function, runs once every frame
@@ -71,14 +70,14 @@ void SplashCard::Update(float deltaTime)
 	//update the total scenetime
 	totalSceneTime += deltaTime;
 
-	//have the logo fade in and out over the course of 4 seconds, holding for 2 seconds in the middle 
+	//have the logo fade in and out over the course of 4 seconds, holding for 2 seconds in the middle
 	if (totalSceneTime < 1.0f)
 		Get<TTN_Renderer2D>(logo).SetColor(glm::vec4(1.0f, 1.0f, 1.0f, TTN_Interpolation::InverseLerp(0.0f, 1.0f, totalSceneTime)));
-	else if (totalSceneTime >= 1.0f && totalSceneTime < 3.0f) 
+	else if (totalSceneTime >= 1.0f && totalSceneTime < 3.0f)
 		Get<TTN_Renderer2D>(logo).SetColor(glm::vec4(1.0f));
 	else if (totalSceneTime >= 3.0f && totalSceneTime < 4.0f)
 		Get<TTN_Renderer2D>(logo).SetColor(glm::vec4(1.0f, 1.0f, 1.0f, TTN_Interpolation::InverseLerp(4.0f, 3.0f, totalSceneTime)));
-	else 
+	else
 		Get<TTN_Renderer2D>(logo).SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
 
 	//always call the base scene's update at the end
