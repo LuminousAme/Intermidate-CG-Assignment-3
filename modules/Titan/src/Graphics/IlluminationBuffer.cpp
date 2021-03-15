@@ -44,8 +44,9 @@ namespace Titan {
 		TTN_PostEffect::Init(width, height);
 	}
 
-	void TTN_IlluminationBuffer::ApplyEffect(TTN_GBuffer::sgbufptr TTN_GBuffer)
+	void TTN_IlluminationBuffer::ApplyEffect(TTN_GBuffer::sgbufptr gBuffer)
 	{
+		//send direcitonal light data
 		m_sunBuffer.SendData(reinterpret_cast<void*>(&m_sun), sizeof(TTN_DirectionalLight));
 
 		if (m_sunEnabled) {
@@ -54,13 +55,16 @@ namespace Titan {
 			m_shaders[TTN_Lights::DIRECTIONAL]->SetUniformMatrix("u_LightSpaceMatrix", m_lightSpaceViewProj);
 			m_shaders[TTN_Lights::DIRECTIONAL]->SetUniform("u_CamPos", m_camPos);
 
-			//send direcitonal light data and bind it
+			//bind sun uniform
 			m_sunBuffer.Bind(0);
 
-			TTN_GBuffer->BindLighting();
+			gBuffer->BindLighting();
+
 			//binds and draws to illumination buffer
 			m_buffers[1]->RenderToFSQ();
-			TTN_GBuffer->UnbindLighting();
+
+			gBuffer->UnbindLighting();
+
 			//unbuinds the uniform buffers
 			m_sunBuffer.Unbind(0);
 
@@ -71,10 +75,11 @@ namespace Titan {
 		//bind ambient shader
 		m_shaders[TTN_Lights::AMBIENT]->Bind();
 
-		//sends direcitonal light data
+		//binds direcitonal light data
 		m_sunBuffer.Bind(0);
 
-		TTN_GBuffer->BindLighting();
+		//binds for lighting
+		gBuffer->BindLighting();
 		m_buffers[1]->BindColorAsTexture(0, 4);
 		m_buffers[0]->BindColorAsTexture(0, 5);
 
@@ -83,7 +88,8 @@ namespace Titan {
 		m_buffers[0]->UnbindTexture(5);
 		m_buffers[1]->UnbindTexture(4);
 
-		TTN_GBuffer->UnbindLighting();
+		gBuffer->UnbindLighting();
+
 		//unbinds uniform buffer
 		m_sunBuffer.Unbind(0);
 		m_shaders[TTN_Lights::AMBIENT]->UnBind();

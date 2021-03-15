@@ -2,24 +2,25 @@
 //gbuffer directional
 layout(location = 0) in vec2 inUV;
 
-
 struct DirectionalLight
 {
 	//Light direction (defaults to down, to the left, and a little forward)
-	vec4 _lightDirection;
+	vec4 m_lightDirection;
 
 	//Generic Light controls
-	vec4 _lightCol;
+	vec4 m_lightColor;
 
 	//Ambience controls
-	vec4 _ambientCol;
-	float _ambientPow;
+	vec4 m_ambientColor;
+	float m_ambientPower;
 	
 	//Power controls
-	float _lightAmbientPow;
-	float _lightSpecularPow;
-	
-	float _shadowBias;
+	float m_lightAmbientPower;
+	float m_lightSpecularPower;
+
+	float m_minShadowBias;
+	float m_maxShadowBias;
+	int m_pcfFilterSamples;
 };
 
 layout (std140, binding = 0) uniform u_Lights
@@ -29,18 +30,19 @@ layout (std140, binding = 0) uniform u_Lights
 
 layout (binding = 30) uniform sampler2D s_ShadowMap;	
 
+//get gbuffer data
 layout (binding = 0) uniform sampler2D s_albedoTex;
 layout (binding = 1) uniform sampler2D s_normalsTex;
 layout (binding = 2) uniform sampler2D s_specularTex;
 layout (binding = 3) uniform sampler2D s_positionTex;
 
+//get the light accumulation buffer
 layout (binding = 4) uniform sampler2D s_lightAccumTex;
 
 uniform mat4 u_LightSpaceMatrix;
 uniform vec3 u_CamPos;
 
 out vec4 frag_color;
-
 
 float ShadowCalculation(vec4 fragPosLightSpace, float bias)
 {
@@ -78,40 +80,29 @@ void main() {
 
 	// Diffuse
 	vec3 N = normalize(inNormal);
-	vec3 lightDir = normalize(-sun._lightDirection.xyz);
+	vec3 lightDir = normalize(-sun.m_lightDirection.xyz);
 	float dif = max(dot(N, lightDir), 0.0);
-	vec3 diffuse = dif * sun._lightCol.xyz;// add diffuse intensity
+	vec3 diffuse = dif * sun.m_lightColor.rgb;// add diffuse intensity
 
 	// Specular
 	vec3 viewDir  = normalize(u_CamPos - fragPos);
 	vec3 h        = normalize(lightDir + viewDir);
 
 	float spec = pow(max(dot(N, h), 0.0), 4.0); // Shininess coefficient (can be a uniform)
-	vec3 specular = sun._lightSpecularPow * texSpec * spec * sun._lightCol.xyz; // Can also use a specular color
+	vec3 specular = sun.m_lightSpecularPower * texSpec * spec * sun.m_lightColor.xyz; // Can also use a specular color
 
-    vec4 fragPosLightSpace = u_LightSpaceMatrix* vec4(fragPos,1.0);
-
-	float bias = max(0.05 * (1.0 - dot(N, lightDir)), sun._shadowBias); 
-	float shadow = ShadowCalculation(fragPosLightSpace, bias);
-
-	vec3 result = ((sun._ambientPow * sun._ambientCol.xyz) + // global ambient light
-		(1.0 - shadow) * //Shadow value
+	vec3 result = ((sun.m_ambientPower * sun.m_ambientColor.xyz) + // global ambient light
 		(diffuse + specular) // light factors from our single light
-		); // Object color
+		);
 
     
-    if (textureColor.a <0.31)
+	//if the alpha is less than 31% than it is our clear colour
+    if (textureColor.a < 0.31)
     {
+		//so just set it to white so there isn't any lighting on the skybox
         result = vec3(1.0,1.0,1.0);
-
     }
 
+	//pass out the frag color
 	frag_color = vec4(result, textureColor.a);
 }
-
-
-
-
-
-
-
