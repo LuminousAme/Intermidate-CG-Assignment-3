@@ -5,6 +5,13 @@
 // Scene.cpp - source file for the class that handles ECS, render calls, etc.
 #include "Titan/Utilities/Scene.h"
 
+//Titan Engine, by Atlas X Games
+
+//precompile header, this file uses entt.hpp, and GLM/gtc/matrix_transform.hpp
+#include "Titan/ttn_pch.h"
+// Scene.cpp - source file for the class that handles ECS, render calls, etc.
+#include "Titan/Utilities/Scene.h"
+
 namespace Titan {
 	//default constructor
 
@@ -404,7 +411,6 @@ namespace Titan {
 
 			//apply all of the other post processing effects to the illiumination buffer
 			if (m_PostProcessingEffects.size() > 0) {
-
 				//and iterate through all the post processing effects
 				for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
 					//if the effect should be applied
@@ -438,7 +444,6 @@ namespace Titan {
 			index = -1;
 			//apply all of the other post processing effects to the 2D buffer
 			if (m_PostProcessingEffects.size() > 0) {
-
 				//and iterate through all the post processing effects
 				for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
 					//if the effect should be applied
@@ -473,7 +478,6 @@ namespace Titan {
 			index = -1;
 			//apply all of the other post processing effects to the particle buffer
 			if (m_PostProcessingEffects.size() > 0) {
-
 				//and iterate through all the post processing effects
 				for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
 					//if the effect should be applied
@@ -502,16 +506,15 @@ namespace Titan {
 			//now that all of the post processing effects have been applied to all 3 buffers, we just need to merge them
 			final2DBuffer->ApplyEffect(finalGBuffer);
 			finalParticleBuffer->ApplyEffect(final2DBuffer);
-			
+
 			//now that they're all merged into the particle buffer, we just need to put it into the scene buffer
 			if (TTN_Backend::GetLastEffect() != nullptr) {
-				//if there was a previous scene drawn, clear all of the post processing effects and apply them to it 
+				//if there was a previous scene drawn, clear all of the post processing effects and apply them to it
 
 				//go through the effects now
 				index = -1;
 				//apply all of the other post processing effects to the last effect
 				if (m_PostProcessingEffects.size() > 0) {
-
 					//and iterate through all the post processing effects
 					for (int i = 0; i < m_PostProcessingEffects.size(); i++) {
 						//if the effect should be applied
@@ -539,7 +542,7 @@ namespace Titan {
 
 				//now the last scene has also had all of the post processing done on it
 			}
-			
+
 			//merge the particle buffer into the scene buffer
 			sceneBuffer->ApplyEffect(finalParticleBuffer);
 
@@ -578,8 +581,8 @@ namespace Titan {
 		glm::vec3 camPos = glm::inverse(viewMat) * glm::vec4(0, 0, 0, 1);
 		illBuffer->SetCamPos(camPos);
 
-		//sort our render group
-		m_RenderGroup->sort<TTN_Renderer>([](const TTN_Renderer& l, const TTN_Renderer& r) {
+			//sort our render group
+			m_RenderGroup->sort<TTN_Renderer>([](const TTN_Renderer& l, const TTN_Renderer& r) {
 			//sort by render layer first, higher render layers get drawn later
 			if (l.GetRenderLayer() < r.GetRenderLayer()) return true;
 			if (l.GetRenderLayer() > r.GetRenderLayer()) return false;
@@ -645,7 +648,7 @@ namespace Titan {
 		gBuffer->Bind();
 		//m_emptyEffect->BindBuffer(0); //this gets unbound in postRender
 
-		//and do the deffered pass 
+		//and do the deffered pass
 		TTN_Shader::sshptr currentShader = nullptr;
 		TTN_Material::smatptr currentMatieral = nullptr;
 		TTN_Mesh::smptr currentMesh = nullptr;
@@ -759,7 +762,6 @@ namespace Titan {
 						//set if the current material should use shadows or not
 						currentShader->SetUniform("u_recievesShadows", (int)currentMatieral->GetRecievesShadows());
 					}
-
 
 					//if this is a height map shader
 					//if they're using a displacement map

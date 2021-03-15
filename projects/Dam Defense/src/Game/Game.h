@@ -377,9 +377,18 @@ protected:
 	float m_radius = 1.0f;
 
 	//pixelation effect 
-	TTN_Pixelation::spixelptr m_pixelation;;
+	TTN_Pixelation::spixelptr m_pixelation;
 	float m_pixels = 512.f;
-	
+
+	//film grain effect 
+	TTN_FilmGrain::sfilmgptr m_filmGrain;
+	float m_amount = 0.1f;
+
+	//bools for imgui controls
+	bool m_applyBloom;
+	bool m_applyPixel;
+	bool m_applyFilm;	
+
 	//bools for imgui controls
 	bool m_applyWarmLut;
 	bool m_applyCoolLut;

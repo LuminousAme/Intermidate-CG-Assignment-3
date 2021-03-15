@@ -26,6 +26,7 @@
 #include "Titan/Graphics/Post/BloomEffect.h"
 #include "Titan/Graphics/Post/CombinationBuffer.h"
 #include "Titan/Graphics/Post/Pixelation.h"
+#include "Titan/Graphics/Post/FilmGrain.h"
 #include "Titan/Graphics/GBuffer.h"
 #include "Titan/Graphics/IlluminationBuffer.h"
 //include ImGui stuff
