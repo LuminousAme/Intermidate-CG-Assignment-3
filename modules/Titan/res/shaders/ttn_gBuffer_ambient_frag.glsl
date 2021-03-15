@@ -54,7 +54,7 @@ void main(){
     vec3 result = (ambient + lightAccum.rgb) * textureColor.rgb;
 
     //add the skybox
-    result = result* skybox.rgb;
+    result = result * skybox.rgb;
 
     //the light accumulation
     frag_color = vec4 (result,1.0);

@@ -21,5 +21,4 @@ void main()
 	//frag_color = vec4(source.rgb,1.0);
 	frag_color.rgb = source.rgb; 
 	frag_color.a = source.a * u_Transparency;//transparency stuff
-	
 }

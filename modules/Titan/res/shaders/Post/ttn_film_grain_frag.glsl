@@ -29,6 +29,6 @@ void main()
   //amount *= randomIntensity;
 
   color.rgb += random(randomIntensity )*0.25;
-  frag_color = vec4(color.rgb,1.0);
+  frag_color = vec4(color.rgb, color.a);
 
 }

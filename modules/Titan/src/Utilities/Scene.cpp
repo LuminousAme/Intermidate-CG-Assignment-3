@@ -5,13 +5,6 @@
 // Scene.cpp - source file for the class that handles ECS, render calls, etc.
 #include "Titan/Utilities/Scene.h"
 
-//Titan Engine, by Atlas X Games
-
-//precompile header, this file uses entt.hpp, and GLM/gtc/matrix_transform.hpp
-#include "Titan/ttn_pch.h"
-// Scene.cpp - source file for the class that handles ECS, render calls, etc.
-#include "Titan/Utilities/Scene.h"
-
 namespace Titan {
 	//default constructor
 
@@ -380,6 +373,26 @@ namespace Titan {
 		//unbind the empty effect and run through all the post effect
 		//m_emptyEffect->UnbindBuffer();
 		illBuffer->BindBuffer(0);
+
+		if (m_Skybox != entt::null && Has<TTN_Renderer>(m_Skybox) && Has<TTN_Transform>(m_Skybox)) {
+			//grab the shader
+			TTN_Shader::sshptr tempShader = Get<TTN_Renderer>(m_Skybox).GetShader();
+			tempShader->Bind();
+
+			//bind the skybox texture
+			Get<TTN_Renderer>(m_Skybox).GetMat()->GetSkybox()->Bind(0);
+			//set the rotation matrix uniform
+			tempShader->SetUniformMatrix("u_EnvironmentRotation", glm::mat3(glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1, 0, 0))));
+			//set the skybox matrix uniform
+			tempShader->SetUniformMatrix("u_SkyboxMatrix", Get<TTN_Camera>(m_Cam).GetProj() * glm::mat4(glm::mat3(viewMat)));
+
+			//render the mesh
+			Get<TTN_Renderer>(m_Skybox).Render(Get<TTN_Transform>(m_Skybox).GetGlobal(), Get<TTN_Camera>(m_Cam).GetProj() * viewMat, glm::mat4(1.0f));
+
+			tempShader->UnBind();
+		}
+
+		illBuffer->UnbindBuffer();
 
 		//now figure out what post effects should be applied
 

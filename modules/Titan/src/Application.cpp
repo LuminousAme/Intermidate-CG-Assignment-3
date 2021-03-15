@@ -91,7 +91,7 @@ namespace Titan {
 		//set up the audio engine
 		m_soundEngine.Init();
 		
-		//Set the background colour for our scene to the base red
+		//Set the background colour for our scene to the base black
 		glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 	}
 
