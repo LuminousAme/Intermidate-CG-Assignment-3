@@ -393,6 +393,13 @@ protected:
 	bool m_useDiffuseRamp = false;
 	bool m_useSpecularRamp = false;
 	bool m_useTextures = true;
+
+	//variables for what deffered piece it is rendering
+	bool m_renderAll = true;
+	bool m_renderPositionsOnly = false;
+	bool m_renderNormalsOnly = false;
+	bool m_renderAlbedoOnly = false;
+	bool m_renderLightAccumulationBufferOnly = false;
 };
 
 inline float SmoothStep(float t) {

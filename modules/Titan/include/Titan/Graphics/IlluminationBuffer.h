@@ -37,7 +37,7 @@ namespace Titan {
 		//Makes it so apply effect with a PostEffect does nothing for this object
 		void ApplyEffect(TTN_PostEffect::spostptr buffer) override { };
 		//Can only apply effect using TTN_GBuffer object
-		void ApplyEffect(TTN_GBuffer::sgbufptr TTN_GBuffer);
+		void ApplyEffect(TTN_GBuffer::sgbufptr gBuffer);
 
 		void DrawIllumBuffer();
 

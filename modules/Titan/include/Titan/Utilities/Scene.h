@@ -24,6 +24,7 @@
 #include "Titan/Graphics/UniformBuffer.h"
 #include "Titan/Graphics/Post/ColorCorrect.h"
 #include "Titan/Graphics/Post/BloomEffect.h"
+#include "Titan/Graphics/Post/CombinationBuffer.h"
 #include "Titan/Graphics/GBuffer.h"
 #include "Titan/Graphics/IlluminationBuffer.h"
 //include ImGui stuff
@@ -135,6 +136,11 @@ namespace Titan {
 		//gets the camera entity
 		const entt::entity& GetCamEntity() { return m_Cam; }
 
+		//sets the skybox entity referece
+		void SetSkyboxEntity(const entt::entity& skybox) { m_Skybox = skybox; }
+		//gets the skybox entity
+		const entt::entity& GetSkyboxEntity() { return m_Skybox; }
+
 		//bullet physics stuff
 		//set the gravity
 		void SetGravity(glm::vec3 gravity);
@@ -207,13 +213,13 @@ namespace Titan {
 		//all of the buffers needed to render a scene
 		TTN_GBuffer::sgbufptr gBuffer; //gBuffer for initial 3D geometry rendering
 		TTN_IlluminationBuffer::sillbufptr illBuffer; //illumination buffer for applying lights to the gBuffer
-		TTN_PostEffect::spostptr finalGBuffer; //the 3D buffer that the final 3D geometry after all the post effects have been applied, gets drawn into
-		TTN_PostEffect::spostptr starting2DBuffer; //the inital buffer that 2D geometry gets drawn into
-		TTN_PostEffect::spostptr final2DBuffer; //the 2D buffer that the final 2D geometry after all the post effects have been applied, gets drawn into
-		TTN_PostEffect::spostptr startingParticleBuffer; //the intial buffer that particles get drawn into 
-		TTN_PostEffect::spostptr finalParticleBuffer; //the particle buffer that the final particles after all the post effects have been applied, gets drawn into
+		TTN_CombineFrameBuffer::scombineptr finalGBuffer; //the 3D buffer that the final 3D geometry after all the post effects have been applied, gets drawn into
+		TTN_CombineFrameBuffer::scombineptr starting2DBuffer; //the inital buffer that 2D geometry gets drawn into
+		TTN_CombineFrameBuffer::scombineptr final2DBuffer; //the 2D buffer that the final 2D geometry after all the post effects have been applied, gets drawn into
+		TTN_CombineFrameBuffer::scombineptr startingParticleBuffer; //the intial buffer that particles get drawn into 
+		TTN_CombineFrameBuffer::scombineptr finalParticleBuffer; //the particle buffer that the final particles after all the post effects have been applied, gets drawn into
 		
-		TTN_PostEffect::spostptr sceneBuffer; //the final buffer that all of the other buffers draw into, and then this draws the final result to the screen
+		TTN_CombineFrameBuffer::scombineptr sceneBuffer; //the final buffer that all of the other buffers draw into, and then this draws the final result to the screen
 
 		int shadowWidth = 1024;
 		int shadowHeight = 1024;
@@ -249,7 +255,10 @@ namespace Titan {
 		bool m_Paused;
 
 		//variable to store the entity for the camera
-		entt::entity m_Cam;
+		entt::entity m_Cam = entt::null;
+
+		//variable to store the entity for the skybox
+		entt::entity m_Skybox = entt::null;
 
 		//the colour of the scene's ambient lighting
 		glm::vec3 m_AmbientColor;
