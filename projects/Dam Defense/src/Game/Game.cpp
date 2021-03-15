@@ -141,13 +141,8 @@ void Game::Update(float deltaTime)
 //render the terrain and water
 void Game::PostRender()
 {
-	//disable blending so we can write to the gBuffer correctly
-	glDisable(GL_BLEND);
-
-	//bind the gBuffer
-	gBuffer->Bind();
-
-	//render the terrain
+	/*
+	//terrain
 	{
 		//bind the shader
 		shaderProgramTerrain->Bind();
@@ -177,8 +172,56 @@ void Game::PostRender()
 		rockText->Bind(3);
 		grassText->Bind(4);
 
+		m_mats[0]->GetDiffuseRamp()->Bind(10);
+		m_mats[0]->GetSpecularMap()->Bind(11);
+
 		//set if the albedo textures should be used
 		shaderProgramTerrain->SetUniform("u_UseDiffuse", (int)m_mats[0]->GetUseAlbedo());
+
+		//send lighting from the scene
+		shaderProgramTerrain->SetUniform("u_AmbientCol", TTN_Scene::GetSceneAmbientColor());
+		shaderProgramTerrain->SetUniform("u_AmbientStrength", TTN_Scene::GetSceneAmbientLightStrength());
+		shaderProgramTerrain->SetUniform("u_Shininess", 128.0f);
+		shaderProgramTerrain->SetUniform("u_hasAmbientLighting", (int)m_mats[0]->GetHasAmbient());
+		shaderProgramTerrain->SetUniform("u_hasSpecularLighting", (int)m_mats[0]->GetHasSpecular());
+		shaderProgramTerrain->SetUniform("u_hasOutline", (int)m_mats[0]->GetHasOutline());
+		shaderProgramTerrain->SetUniform("u_useDiffuseRamp", m_mats[0]->GetUseDiffuseRamp());
+		shaderProgramTerrain->SetUniform("u_useSpecularRamp", (int)m_mats[0]->GetUseSpecularRamp());
+		//stuff from the light
+		glm::vec3 lightPositions[16];
+		glm::vec3 lightColor[16];
+		float lightAmbientStr[16];
+		float lightSpecStr[16];
+		float lightAttenConst[16];
+		float lightAttenLinear[16];
+		float lightAttenQuadartic[16];
+
+		for (int i = 0; i < 16 && i < m_Lights.size(); i++) {
+			auto& light = Get<TTN_Light>(m_Lights[i]);
+			auto& lightTrans = Get<TTN_Transform>(m_Lights[i]);
+			lightPositions[i] = lightTrans.GetPos();
+			lightColor[i] = light.GetColor();
+			lightAmbientStr[i] = light.GetAmbientStrength();
+			lightSpecStr[i] = light.GetSpecularStrength();
+			lightAttenConst[i] = light.GetConstantAttenuation();
+			lightAttenLinear[i] = light.GetConstantAttenuation();
+			lightAttenQuadartic[i] = light.GetQuadraticAttenuation();
+		}
+
+		//send all the data about the lights to glsl
+		shaderProgramTerrain->SetUniform("u_LightPos", lightPositions[0], 16);
+		shaderProgramTerrain->SetUniform("u_LightCol", lightColor[0], 16);
+		shaderProgramTerrain->SetUniform("u_AmbientLightStrength", lightAmbientStr[0], 16);
+		shaderProgramTerrain->SetUniform("u_SpecularLightStrength", lightSpecStr[0], 16);
+		shaderProgramTerrain->SetUniform("u_LightAttenuationConstant", lightAttenConst[0], 16);
+		shaderProgramTerrain->SetUniform("u_LightAttenuationLinear", lightAttenLinear[0], 16);
+		shaderProgramTerrain->SetUniform("u_LightAttenuationQuadratic", lightAttenQuadartic[0], 16);
+
+		//and tell it how many lights there actually are
+		shaderProgramTerrain->SetUniform("u_NumOfLights", (int)m_Lights.size());
+
+		//stuff from the camera
+		shaderProgramTerrain->SetUniform("u_CamPos", Get<TTN_Transform>(camera).GetGlobalPos());
 
 		//render the terrain
 		terrainPlain->GetVAOPointer()->Render();
@@ -213,18 +256,13 @@ void Game::PostRender()
 		//bind the textures
 		waterText->Bind(0);
 
-		//set if the albedo textures should be used
-		shaderProgramWater->SetUniform("u_UseDiffuse", (int)m_mats[0]->GetUseAlbedo());
+		//send lighting from the scene
+		shaderProgramWater->SetUniform("u_AmbientCol", TTN_Scene::GetSceneAmbientColor());
+		shaderProgramWater->SetUniform("u_AmbientStrength", TTN_Scene::GetSceneAmbientLightStrength());
 
 		//render the water (just use the same plane as the terrain)
 		terrainPlain->GetVAOPointer()->Render();
-	}
-
-	//unbind the gBuffer
-	gBuffer->Unbind();
-
-	//enable blending again so it works on everything else
-	glEnable(GL_BLEND);
+	}*/
 
 	TTN_Scene::PostRender();
 }
@@ -2097,7 +2135,22 @@ void Game::ImGui()
 	}
 
 	if (ImGui::CollapsingHeader("Directional Light Controls")) {
-		TTN_DirectionalLight tempSun = illBuffer->GetSunRef();
+		TTN_DirectionalLight tempSun = m_Sun;
+		/*
+		glm::vec3 direction = tempSun.m_lightDirection;
+		glm::vec3 color = tempSun.m_lightColor;
+		glm::vec3 ambientColor = tempSun.m_ambientColor;
+		float ambientPower = tempSun.m_ambientPower;
+		float lightAmbientPower = tempSun.m_lightAmbientPower;
+		float lightSpecularPower = tempSun.m_lightSpecularPower;
+		float minShadowBias = tempSun.m_minShadowBias;
+		float maxShadowBias = tempSun.m_maxShadowBias;
+		int pcfPasses = tempSun.m_pcfFilterSamples;
+		*/
+
+		if (ImGui::SliderFloat("Light Frustrum XY", &shadowOrthoXY, 2.0f, 50.0f));
+
+		if (ImGui::SliderFloat("Light Frustrum Z", &shadowOrthoZ, 2.0f, 50.0f));
 
 		if (ImGui::SliderFloat3("Directional Light Direction", glm::value_ptr(tempSun.m_lightDirection), -50.0f, 50.0f)) {
 			SetSun(tempSun);
@@ -2136,8 +2189,108 @@ void Game::ImGui()
 		}
 	}
 
-	if (ImGui::CollapsingHeader("Point and SceneLight Controls")) {
+	if (ImGui::CollapsingHeader("Point and Scene Light Controls")) {
 		ImGui::Text("Maximum number of lights: 16");
+
+		//scene level lighting
+		float sceneAmbientLight[3], sceneAmbientStr;
+		sceneAmbientLight[0] = GetSceneAmbientColor().r;
+		sceneAmbientLight[1] = GetSceneAmbientColor().g;
+		sceneAmbientLight[2] = GetSceneAmbientColor().b;
+		sceneAmbientStr = GetSceneAmbientLightStrength();
+
+		//scene level ambient strenght
+		if (ImGui::SliderFloat("Scene level ambient strenght", &sceneAmbientStr, 0.0f, 1.0f)) {
+			SetSceneAmbientLightStrength(sceneAmbientStr);
+		}
+
+		//scene level ambient color
+		if (ImGui::ColorPicker3("Scene level ambient color", sceneAmbientLight)) {
+			SetSceneAmbientColor(glm::vec3(sceneAmbientLight[0], sceneAmbientLight[1], sceneAmbientLight[2]));
+		}
+
+		//loop through all the lights
+		int i = 0;
+		std::vector<entt::entity>::iterator it = m_Lights.begin();
+		while (it != m_Lights.end()) {
+			//make temp floats for their data
+			float color[3], pos[3], ambientStr, specularStr, attenConst, attenLine, attenQuad;
+			TTN_Light& tempLightRef = Get<TTN_Light>(*it);
+			TTN_Transform& tempLightTransRef = Get<TTN_Transform>(*it);
+			color[0] = tempLightRef.GetColor().r;
+			color[1] = tempLightRef.GetColor().g;
+			color[2] = tempLightRef.GetColor().b;
+			pos[0] = tempLightTransRef.GetPos().x;
+			pos[1] = tempLightTransRef.GetPos().y;
+			pos[2] = tempLightTransRef.GetPos().z;
+			ambientStr = tempLightRef.GetAmbientStrength();
+			specularStr = tempLightRef.GetSpecularStrength();
+			attenConst = tempLightRef.GetConstantAttenuation();
+			attenLine = tempLightRef.GetLinearAttenuation();
+			attenQuad = tempLightRef.GetQuadraticAttenuation();
+
+			//position
+			std::string tempPosString = "Light " + std::to_string(i) + " Position";
+			if (ImGui::SliderFloat3(tempPosString.c_str(), pos, -100.0f, 100.0f)) {
+				tempLightTransRef.SetPos(glm::vec3(pos[0], pos[1], pos[2]));
+			}
+
+			//color
+			std::string tempColorString = "Light " + std::to_string(i) + " Color";
+			if (ImGui::ColorPicker3(tempColorString.c_str(), color)) {
+				tempLightRef.SetColor(glm::vec3(color[0], color[1], color[2]));
+			}
+
+			//strenghts
+			std::string tempAmbientStrString = "Light " + std::to_string(i) + " Ambient strenght";
+			if (ImGui::SliderFloat(tempAmbientStrString.c_str(), &ambientStr, 0.0f, 10.0f)) {
+				tempLightRef.SetAmbientStrength(ambientStr);
+			}
+
+			std::string tempSpecularStrString = "Light " + std::to_string(i) + " Specular strenght";
+			if (ImGui::SliderFloat(tempSpecularStrString.c_str(), &specularStr, 0.0f, 10.0f)) {
+				tempLightRef.SetSpecularStrength(specularStr);
+			}
+
+			//attenutaition
+			std::string tempAttenConst = "Light " + std::to_string(i) + " Constant Attenuation";
+			if (ImGui::SliderFloat(tempAttenConst.c_str(), &attenConst, 0.0f, 100.0f)) {
+				tempLightRef.SetConstantAttenuation(attenConst);
+			}
+
+			std::string tempAttenLine = "Light " + std::to_string(i) + " Linear Attenuation";
+			if (ImGui::SliderFloat(tempAttenLine.c_str(), &attenLine, 0.0f, 100.0f)) {
+				tempLightRef.SetLinearAttenuation(attenLine);
+			}
+
+			std::string tempAttenQuad = "Light " + std::to_string(i) + " Quadratic Attenuation";
+			if (ImGui::SliderFloat(tempAttenQuad.c_str(), &attenQuad, 0.0f, 100.0f)) {
+				tempLightRef.SetQuadraticAttenuation(attenQuad);
+			}
+
+			std::string tempButton = "Remove Light " + std::to_string(i);
+			if (ImGui::Button(tempButton.c_str())) {
+				DeleteEntity(*it);
+				it = m_Lights.erase(it);
+			}
+
+			i++;
+			it++;
+		}
+
+		//if there are less than 16 lights, give a button that allows the user to add a new light
+		if (i < 15) {
+			if (ImGui::Button("Add New Light")) {
+				m_Lights.push_back(CreateEntity());
+
+				TTN_Transform newTrans = TTN_Transform();
+				TTN_Light newLight = TTN_Light();
+
+				AttachCopy(m_Lights[m_Lights.size() - 1], newTrans);
+				AttachCopy(m_Lights[m_Lights.size() - 1], newLight);
+			}
+		}
+	}
 
 	if (ImGui::CollapsingHeader("Camera Controls")) {
 		//control the x axis position
@@ -2152,58 +2305,6 @@ void Game::ImGui()
 		if (ImGui::SliderFloat("Camera Test Y-Axis", &c, -100.0f, 100.0f)) {
 			a.SetPos(glm::vec3(a.GetPos().x, c, a.GetPos().z));
 		}
-	}
-
-	if (ImGui::CollapsingHeader("Deffered Rendering Controls")) {
-		if (ImGui::Checkbox("Render scene composited", &m_renderAll)) {
-			m_renderAll = true;
-			m_renderPositionsOnly = false;
-			m_renderNormalsOnly = false;
-			m_renderAlbedoOnly = false;
-			m_renderLightAccumulationBufferOnly = false;
-
-			RenderCompositedScene();
-		}
-
-		if (ImGui::Checkbox("Render only position buffer", &m_renderPositionsOnly)) {
-			m_renderAll = false;
-			m_renderPositionsOnly = true;
-			m_renderNormalsOnly = false;
-			m_renderAlbedoOnly = false;
-			m_renderLightAccumulationBufferOnly = false;
-
-			RenderOnlyPositions();
-		}
-
-		if (ImGui::Checkbox("Render only normal buffer", &m_renderNormalsOnly)) {
-			m_renderAll = false;
-			m_renderPositionsOnly = false;
-			m_renderNormalsOnly = true;
-			m_renderAlbedoOnly = false;
-			m_renderLightAccumulationBufferOnly = false;
-
-			RenderOnlyNormals();
-		}
-
-		if (ImGui::Checkbox("Render only color/material buffer", &m_renderAlbedoOnly)) {
-			m_renderAll = false;
-			m_renderPositionsOnly = false;
-			m_renderNormalsOnly = false;
-			m_renderAlbedoOnly = true;
-			m_renderLightAccumulationBufferOnly = false;
-
-			RenderOnlyAlbedo();
-		}
-
-		if (ImGui::Checkbox("Render only light accumulation buffer", &m_renderLightAccumulationBufferOnly)) {
-			m_renderAll = false;
-			m_renderPositionsOnly = false;
-			m_renderNormalsOnly = false;
-			m_renderAlbedoOnly = false;
-			m_renderLightAccumulationBufferOnly = true;
-
-			RenderOnlyLightAccululation();
-		}	
 	}
 
 	if (ImGui::CollapsingHeader("Effect Controls")) {
@@ -2477,4 +2578,5 @@ void Game::ColorCorrection()
 		//if it's been turned of set the effect not to render
 		m_colorCorrectEffect->SetShouldApply(false);
 	}
+
 }
